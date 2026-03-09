@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Company IPA Update Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 520px;
+            width: 90%;
+            padding: 40px;
+            background: #161b22;
+            border-radius: 16px;
+            border: 1px solid #30363d;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .icon { font-size: 64px; margin-bottom: 16px; }
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+        .subtitle {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .version-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .version-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #8b949e;
+            margin-bottom: 8px;
+        }
+        .version-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #58a6ff;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        .release-notes {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .release-notes h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+        .release-notes p {
+            color: #c9d1d9;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #21262d;
+            font-size: 14px;
+        }
+        .status-row:last-child { border-bottom: none; }
+        .status-label { color: #8b949e; }
+        .status-value { color: #c9d1d9; font-weight: 500; }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3fb950;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .link-btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 12px 28px;
+            background: #238636;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .link-btn:hover { background: #2ea043; }
+        .loading {
+            color: #8b949e;
+            padding: 40px;
+            font-size: 16px;
+        }
+        .error {
+            color: #f85149;
+            padding: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="loading">Loading status...</div>
+    </div>
+
+    <script>
+        function timeAgo(dateStr) {
+            const now = new Date();
+            const then = new Date(dateStr);
+            const diff = Math.floor((now - then) / 1000);
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        async function loadStatus() {
+            const app = document.getElementById('app');
+            try {
+                const resp = await fetch('status.json?t=' + Date.now());
+                if (!resp.ok) throw new Error('Status not available yet');
+                const data = await resp.json();
+
+                app.innerHTML = `
+                    <div class="icon">&#x1F43E;</div>
+                    <h1>${data.app_name} IPA Tracker</h1>
+                    <p class="subtitle">Monitoring decrypt.day for updates</p>
+
+                    <div class="version-card">
+                        <div class="version-label">Current Version</div>
+                        <div class="version-number">${data.current_version}</div>
+                    </div>
+
+                    <div class="release-notes">
+                        <h3>Release Notes</h3>
+                        <p>${data.release_notes || 'No release notes available'}</p>
+                    </div>
+
+                    <div style="text-align: left;">
+                        <div class="status-row">
+                            <span class="status-label">Status</span>
+                            <span class="status-value"><span class="status-dot"></span>Monitoring</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Check Interval</span>
+                            <span class="status-value">Every 5 minutes</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">Last Checked</span>
+                            <span class="status-value">${timeAgo(data.last_checked)}</span>
+                        </div>
+                    </div>
+
+                    <a href="${data.decrypt_url}" target="_blank" class="link-btn">
+                        View on decrypt.day
+                    </a>
+                `;
+            } catch (e) {
+                app.innerHTML = `
+                    <div class="icon">&#x1F43E;</div>
+                    <h1>Animal Company IPA Tracker</h1>
+                    <p class="subtitle">Monitoring decrypt.day for updates</p>
+                    <div class="error">Status data not loaded yet. The checker will populate this on its next run.</div>
+                `;
+            }
+        }
+
+        loadStatus();
+        setInterval(loadStatus, 60000); // auto-refresh every minute
+    </script>
+</body>
+</html>
